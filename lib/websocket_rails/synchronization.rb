@@ -66,12 +66,20 @@ module WebsocketRails
     def ruby_redis
       @ruby_redis ||= begin
         redis_options = WebsocketRails.config.redis_options.merge(:driver => :ruby)
-        Redis.new(redis_options)
+        init_redis(redis_options)
       end
     end
 
     def redis_pool(redis_options)
       ConnectionPool::Wrapper.new(size: WebsocketRails.config.synchronize_pool_size) do
+        init_redis(redis_options)
+      end
+    end
+    
+    def init_redis(redis_options)
+      if redis_options.has_key?(:namespace) && defined? Redis::Namespace
+        Redis::Namespace.new(redis_options[:namespace], :redis => Redis.new(redis_options))
+      else
         Redis.new(redis_options)
       end
     end
