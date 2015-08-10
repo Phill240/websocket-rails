@@ -51,9 +51,10 @@ module WebsocketRails
 
     def initialize
       Redis::Objects.redis = redis
-      @channel_tokens = Redis::HashKey.new('websocket_rails.channel_tokens')
-      @active_servers = Redis::List.new('websocket_rails.server_tokens')
-      @active_users = Redis::HashKey.new('websocket_rails.users')
+      namespace = WebsocketRails.config.redis_namespace.blank? ? '' : "#{WebsocketRails.config.redis_namespace}."
+      @channel_tokens = Redis::HashKey.new("#{namespace}websocket_rails.channel_tokens")
+      @active_servers = Redis::List.new("#{namespace}websocket_rails.server_tokens")
+      @active_users = Redis::HashKey.new("#{namespace}websocket_rails.users")
     end
 
     def redis
@@ -66,24 +67,16 @@ module WebsocketRails
     def ruby_redis
       @ruby_redis ||= begin
         redis_options = WebsocketRails.config.redis_options.merge(:driver => :ruby)
-        init_redis(redis_options)
+        Redis.new(redis_options)
       end
     end
 
     def redis_pool(redis_options)
       ConnectionPool::Wrapper.new(size: WebsocketRails.config.synchronize_pool_size) do
-        init_redis(redis_options)
-      end
-    end
-    
-    def init_redis(redis_options)
-      if redis_options.has_key?(:namespace) && defined? Redis::Namespace
-        Redis::Namespace.new(redis_options[:namespace], :redis => Redis.new(redis_options))
-      else
         Redis.new(redis_options)
       end
     end
-
+    
     def publish(event)
       Fiber.new do
         event.server_token = server_token

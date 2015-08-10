@@ -173,5 +173,13 @@ module WebsocketRails
       @default_ping_interval = interval.to_i
     end
 
+    def redis_namespace
+      @redis_namespace ||= ''
+    end
+
+    def redis_namespace=(value)
+      @redis_namespace = value
+    end
+
   end
 end
